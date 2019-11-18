@@ -17,6 +17,7 @@ import {
 } from '@chakra-ui/core';
 
 import { FiMapPin, FiHome } from 'react-icons/fi';
+import { MdPlace, MdHome } from 'react-icons/md';
 
 // import Nav from '../components/nav';
 import Autocomplete from '../components/Autocomplete';
@@ -161,16 +162,16 @@ const MapContainer = () => {
               lng={location.lng}
               hasArrow
               placement="top"
-              label={`${location.name}-${index}`}
+              label={location.name}
             >
               <Flex>
-                <Icon as={FiMapPin} size="24px" marginLeft="-12px" />
+                <Icon as={MdPlace} size="24px" marginLeft="-12px" />
               </Flex>
             </Tooltip>
           ))}
           {activeHome !== undefined && (
             <Icon
-              as={FiHome}
+              as={MdHome}
               lat={activeHome.location.lat}
               lng={activeHome.location.lng}
               color="blue.500"
