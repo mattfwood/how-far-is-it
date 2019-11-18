@@ -60,6 +60,7 @@ let directionsService;
 
 const MapContainer = () => {
   const [activeAddress, setActiveAddress] = useState(null);
+  const [homesDisabled, setHomesDisabled] = useState(false);
   const [keyLocations, setKeyLocations] = useStoredState([], 'key-locations');
   const [homeList, setHomeList] = useStoredState([], 'how-far-is-it:homes');
   const [activeLocation, setActiveLocation] = useState(null);
@@ -99,6 +100,8 @@ const MapContainer = () => {
 
     if (activeAddress !== null) {
       const getAllRoutes = async () => {
+        // prevent homes from being changed while loading
+        setHomesDisabled(true);
         const updatedLocationPromises = keyLocations.map(async location => {
           const request = {
             origin: activeAddress,
@@ -126,6 +129,9 @@ const MapContainer = () => {
         const results = await Promise.all(updatedLocationPromises);
 
         setKeyLocations(results);
+
+        // re-enable changing address after
+        setHomesDisabled(false);
       };
 
       getAllRoutes();
@@ -229,7 +235,11 @@ const MapContainer = () => {
               value={activeAddress}
             >
               {homeList.map(homeItem => (
-                <Radio key={homeItem.address} value={homeItem.address}>
+                <Radio
+                  key={homeItem.address}
+                  value={homeItem.address}
+                  isDisabled={homesDisabled}
+                >
                   {homeItem.address}
                 </Radio>
               ))}
