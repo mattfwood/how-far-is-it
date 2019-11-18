@@ -165,7 +165,7 @@ const MapContainer = () => {
               label={location.name}
             >
               <Flex>
-                <Icon as={MdPlace} size="24px" marginLeft="-12px" />
+                <Icon as={MdPlace} size="24px" marginLeft="-18px" />
               </Flex>
             </Tooltip>
           ))}
