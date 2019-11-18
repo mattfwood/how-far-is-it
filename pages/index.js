@@ -61,10 +61,9 @@ let directionsService;
 const MapContainer = () => {
   const [activeAddress, setActiveAddress] = useState(null);
   const [keyLocations, setKeyLocations] = useStoredState([], 'key-locations');
-  const [homeList, setHomeList] = useState([]);
+  const [homeList, setHomeList] = useStoredState([], 'how-far-is-it:homes');
   const [activeLocation, setActiveLocation] = useState(null);
   const lastLocationRef = useRef();
-  const autocompleteRef = useRef();
 
   function addHome(newAddress) {
     setHomeList([...homeList, newAddress]);
@@ -72,6 +71,12 @@ const MapContainer = () => {
 
   function addKeyLocation(newLocation) {
     setKeyLocations([...keyLocations, newLocation]);
+    if (lastLocationRef && lastLocationRef.current) {
+      // timeout hack to let ref update before trying to focus it
+      setTimeout(() => {
+        lastLocationRef.current.focus();
+      }, 1);
+    }
   }
 
   function removeKeyLocation(locationName) {
@@ -89,6 +94,7 @@ const MapContainer = () => {
   }
 
   useEffect(() => {
+    console.log(lastLocationRef);
     directionsService = new google.maps.DirectionsService();
 
     if (activeAddress !== null) {
@@ -125,6 +131,12 @@ const MapContainer = () => {
       getAllRoutes();
     }
   }, [activeAddress]);
+
+  useEffect(() => {
+    if (homeList.length > 0 && activeAddress === null) {
+      setActiveAddress(homeList[0].address);
+    }
+  }, [homeList]);
 
   const activeHome = homeList.find(home => home.address === activeAddress);
 
@@ -165,7 +177,6 @@ const MapContainer = () => {
       <Box p="3" overflow="auto">
         <Box paddingBottom="2" mb="10px">
           <Autocomplete
-            ref={autocompleteRef}
             placeholder="Enter Location"
             style={{ width: '100%' }}
             onPlaceSelected={place => {
@@ -201,7 +212,7 @@ const MapContainer = () => {
               borderBottomRightRadius="4px"
               onClick={() => {
                 const { lat, lng } = activeLocation;
-                addKeyLocation({ lat, lng, name: 'New Location' });
+                addKeyLocation({ lat, lng, name: '' });
                 setActiveLocation(null);
               }}
               disabled={!activeLocation}
@@ -225,9 +236,11 @@ const MapContainer = () => {
             </RadioGroup>
           </Box>
         </Box>
-        <Heading size="md" mb="10px">
-          Landmarks
-        </Heading>
+        {keyLocations.length > 0 && (
+          <Heading size="md" mb="10px">
+            Landmarks
+          </Heading>
+        )}
         {keyLocations.map((location, index) => (
           <Box
             key={index}
@@ -252,6 +265,9 @@ const MapContainer = () => {
                 updatedLocations[index].name = e.target.value;
                 setKeyLocations(updatedLocations);
               }}
+              placeholder="Location Name"
+              fontWeight="600"
+              height="30px"
             />
             {/* <Editable
               defaultValue={location.name}
