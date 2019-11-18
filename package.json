@@ -1,0 +1,27 @@
+{
+  "name": "home-map-tool",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@chakra-ui/core": "^0.4.1",
+    "@emotion/core": "^10.0.22",
+    "@emotion/styled": "^10.0.23",
+    "emotion-theming": "^10.0.19",
+    "google-map-react": "^1.1.5",
+    "next": "9.1.2",
+    "prop-types": "^15.7.2",
+    "react": "16.11.0",
+    "react-dom": "16.11.0",
+    "react-google-autocomplete": "^1.1.2",
+    "react-icons": "^3.8.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.6.0",
+    "eslint-config-cratebind": "^2.0.10"
+  }
+}
