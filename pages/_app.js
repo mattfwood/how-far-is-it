@@ -20,11 +20,12 @@ class MyApp extends App {
     return (
       <ThemeProvider>
         <CSSReset />
-        <Component {...pageProps} />
         <script
+          // crossOrigin="true"
           type="text/javascript"
           src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBPe8S3NtbZFUdaZYB7eEKh5hMotJtVdfc&libraries=places"
         />
+        <Component {...pageProps} />
       </ThemeProvider>
     );
   }

@@ -14,9 +14,9 @@ import {
   Radio,
   CloseButton,
   Button,
+  PseudoBox,
 } from '@chakra-ui/core';
 
-import { FiMapPin, FiHome } from 'react-icons/fi';
 import { MdPlace, MdHome } from 'react-icons/md';
 
 // import Nav from '../components/nav';
@@ -58,10 +58,12 @@ const center = {
 const zoom = 11;
 
 let directionsService;
+let directionsRenderer;
 
 const MapContainer = () => {
   const [activeAddress, setActiveAddress] = useState(null);
   const [homesDisabled, setHomesDisabled] = useState(false);
+  const [googleMaps, setGoogleMaps] = useState(null);
   const [keyLocations, setKeyLocations] = useStoredState([], 'key-locations');
   const [homeList, setHomeList] = useStoredState([], 'how-far-is-it:homes');
   const [activeLocation, setActiveLocation] = useState(null);
@@ -96,8 +98,8 @@ const MapContainer = () => {
   }
 
   useEffect(() => {
-    console.log(lastLocationRef);
     directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
 
     if (activeAddress !== null) {
       const getAllRoutes = async () => {
@@ -117,14 +119,15 @@ const MapContainer = () => {
           const getRoute = async () => {
             return new Promise((resolve, reject) => {
               directionsService.route(request, (result, status) => {
+                console.log({ result });
                 resolve(result);
               });
             });
           };
 
-          const result = await getRoute();
+          const routeResult = await getRoute();
 
-          return { ...location, ...result };
+          return { ...location, directions: routeResult };
         });
 
         const results = await Promise.all(updatedLocationPromises);
@@ -137,7 +140,7 @@ const MapContainer = () => {
 
       getAllRoutes();
     }
-  }, [activeAddress]);
+  }, [activeAddress, keyLocations.length]);
 
   useEffect(() => {
     if (homeList.length > 0 && activeAddress === null) {
@@ -145,17 +148,27 @@ const MapContainer = () => {
     }
   }, [homeList]);
 
+  // useEffect(() => {
+  //   const map = document.querySelector('#google-map-container').children[0]
+  //     .children[0];
+  //   directionsRenderer.setMap(map);
+  // }, [googleMaps]);
+
   const activeHome = homeList.find(home => home.address === activeAddress);
 
   return (
     <Grid templateColumns="6fr 3fr" height="100vh">
-      <div style={{ height: '100vh', width: '100%' }}>
+      <div style={{ height: '100vh', width: '100%' }} id="google-map-container">
         <GoogleMapReact
           // bootstrapURLKeys={{ key: '' }}
           defaultCenter={center}
           defaultZoom={zoom}
+          onGoogleApiLoaded={({ map, maps }) => {
+            setGoogleMaps({ map, maps });
+            directionsRenderer.setMap(map);
+          }}
         >
-          {keyLocations.map((location, index) => (
+          {keyLocations.map(location => (
             <Tooltip
               key={location.name}
               lat={location.lat}
@@ -182,124 +195,131 @@ const MapContainer = () => {
         </GoogleMapReact>
       </div>
       <Box p="3" overflow="auto">
-        <Box paddingBottom="2" mb="10px">
-          <Autocomplete
-            placeholder="Enter Location"
-            style={{ width: '100%' }}
-            onPlaceSelected={place => {
-              setActiveLocation({
-                address: place.formatted_address,
-                location: {
-                  lng: place.geometry.location.lng(),
-                  lat: place.geometry.location.lat(),
-                },
-              });
-            }}
-            types={['address']}
-            // input={<Input placeholder="Address" />}
-          />
-          <Flex>
-            <Button
-              width="50%"
-              borderRadius="0"
-              borderBottomLeftRadius="4px"
-              onClick={() => {
-                setActiveAddress(activeLocation.address);
-                addHome(activeLocation);
-                setActiveLocation(null);
-                clearAutocomplete();
-              }}
-              disabled={!activeLocation}
-            >
-              Add Home
-            </Button>
-            <Button
-              width="50%"
-              borderRadius="0"
-              borderBottomRightRadius="4px"
-              onClick={() => {
-                const { lat, lng } = activeLocation;
-                addKeyLocation({ lat, lng, name: '' });
-                setActiveLocation(null);
-              }}
-              disabled={!activeLocation}
-            >
-              Add Landmark
-            </Button>
-          </Flex>
-          <Box mt="10px">
-            <RadioGroup
-              key={activeAddress}
-              onChange={e => {
-                setActiveAddress(e.target.value);
-              }}
-              value={activeAddress}
-            >
-              {homeList.map(homeItem => (
-                <Radio
-                  key={homeItem.address}
-                  value={homeItem.address}
-                  isDisabled={homesDisabled}
+        {googleMaps !== null && (
+          <>
+            <Box paddingBottom="2" mb="10px">
+              <Autocomplete
+                placeholder="Enter Location"
+                style={{ width: '100%' }}
+                onPlaceSelected={place => {
+                  setActiveLocation({
+                    address: place.formatted_address,
+                    location: {
+                      lng: place.geometry.location.lng(),
+                      lat: place.geometry.location.lat(),
+                    },
+                  });
+                }}
+                types={['address']}
+                // input={<Input placeholder="Address" />}
+              />
+              <Flex>
+                <Button
+                  width="50%"
+                  borderRadius="0"
+                  borderBottomLeftRadius="4px"
+                  onClick={() => {
+                    setActiveAddress(activeLocation.address);
+                    addHome(activeLocation);
+                    setActiveLocation(null);
+                    clearAutocomplete();
+                  }}
+                  disabled={!activeLocation}
                 >
-                  {homeItem.address}
-                </Radio>
-              ))}
-            </RadioGroup>
-          </Box>
-        </Box>
-        {keyLocations.length > 0 && (
-          <Heading size="md" mb="10px">
-            Landmarks
-          </Heading>
-        )}
-        {keyLocations.map((location, index) => (
-          <Box
-            key={index}
-            rounded="lg"
-            borderWidth="1px"
-            p="6"
-            mb="10px"
-            position="relative"
-          >
-            <CloseButton
-              position="absolute"
-              top="5px"
-              right="5px"
-              onClick={() => removeKeyLocation(location.name)}
-            />
-            <Input
-              ref={lastLocationRef}
-              value={location.name}
-              variant="unstyled"
-              onChange={e => {
-                const updatedLocations = [...keyLocations];
-                updatedLocations[index].name = e.target.value;
-                setKeyLocations(updatedLocations);
-              }}
-              placeholder="Location Name"
-              fontWeight="600"
-              height="30px"
-            />
-            {/* <Editable
-              defaultValue={location.name}
-              onSubmit={value => {
-                const updatedLocations = [...keyLocations];
-                updatedLocations[index].name = value;
-                setKeyLocations(updatedLocations);
-              }}
-            >
-
-              <EditablePreview />
-            </Editable> */}
-            {/* <Heading size="md">{location.name}</Heading> */}
-            {location.routes && (
-              <>
-                <Text>{location.routes[0].legs[0].duration.text}</Text>
-                <Text>{location.routes[0].legs[0].distance.text}</Text>
-              </>
+                  Add Home
+                </Button>
+                <Button
+                  width="50%"
+                  borderRadius="0"
+                  borderBottomRightRadius="4px"
+                  onClick={() => {
+                    console.log(activeLocation);
+                    const { lat, lng } = activeLocation.location;
+                    addKeyLocation({ lat, lng, name: '' });
+                    setActiveLocation(null);
+                  }}
+                  disabled={!activeLocation}
+                >
+                  Add Landmark
+                </Button>
+              </Flex>
+              <Box mt="10px">
+                <RadioGroup
+                  key={activeAddress}
+                  onChange={e => {
+                    setActiveAddress(e.target.value);
+                  }}
+                  value={activeAddress}
+                >
+                  {homeList.map(homeItem => (
+                    <Radio
+                      key={homeItem.address}
+                      value={homeItem.address}
+                      isDisabled={homesDisabled}
+                    >
+                      {homeItem.address}
+                    </Radio>
+                  ))}
+                </RadioGroup>
+              </Box>
+            </Box>
+            {keyLocations.length > 0 && (
+              <Heading size="md" mb="10px">
+                Landmarks
+              </Heading>
             )}
-          </Box>
-        ))}
+            {keyLocations.map((location, index) => {
+              // function handleFocus() {
+              //   const renderer = googleMaps.maps.DirectionsRenderer();
+              //   renderer.setMap(googleMaps.map);
+              //   console.log(renderer);
+              //   renderer.setDirections(location.directions);
+              // }
+              return (
+                <PseudoBox
+                  key={index}
+                  rounded="lg"
+                  borderWidth="1px"
+                  p="6"
+                  mb="10px"
+                  position="relative"
+                  // onMouseOver={handleFocus}
+                  // onFocus={handleFocus}
+                >
+                  <CloseButton
+                    position="absolute"
+                    top="5px"
+                    right="5px"
+                    onClick={() => removeKeyLocation(location.name)}
+                  />
+                  <Input
+                    ref={lastLocationRef}
+                    value={location.name}
+                    variant="unstyled"
+                    onChange={e => {
+                      const updatedLocations = [...keyLocations];
+                      updatedLocations[index].name = e.target.value;
+                      setKeyLocations(updatedLocations);
+                    }}
+                    placeholder="Location Name"
+                    fontWeight="600"
+                    height="30px"
+                  />
+                  {location.directions && location.directions.routes && (
+                    <>
+                      <Text>
+                        {location.directions.routes[0].legs[0].duration.text}
+                      </Text>
+                      <Text>
+                        {location.directions.routes[0].legs[0].distance.text}
+                      </Text>
+                    </>
+                  )}
+                </PseudoBox>
+              );
+            })}
+          </>
+        )}
       </Box>
     </Grid>
   );
